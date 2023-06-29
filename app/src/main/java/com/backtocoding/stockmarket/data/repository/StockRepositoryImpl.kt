@@ -1,7 +1,9 @@
 package com.backtocoding.stockmarket.data.repository
 
+import com.backtocoding.stockmarket.data.csv.CSVParser
 import com.backtocoding.stockmarket.data.local.StockDatabase
 import com.backtocoding.stockmarket.data.mapper.toCompanyListing
+import com.backtocoding.stockmarket.data.mapper.toCompanyListingEntity
 import com.backtocoding.stockmarket.data.remote.StockApi
 import com.backtocoding.stockmarket.domain.model.CompanyListing
 import com.backtocoding.stockmarket.domain.repository.StockRepository
@@ -16,7 +18,8 @@ import javax.inject.Singleton
 @Singleton
 class StockRepositoryImpl @Inject constructor(
     val api: StockApi,
-    val db: StockDatabase
+    val db: StockDatabase,
+    val companyListingsParser: CSVParser<CompanyListing>
 ) : StockRepository {
 
     private val dao = db.dao
@@ -40,6 +43,7 @@ class StockRepositoryImpl @Inject constructor(
             }
             val remoteListings = try {
                 val response = api.getListings()
+                companyListingsParser.parse(response.byteStream())
                 /**
                  *  If we do val csvReader = CSVReader(Input.......)
                  *
@@ -53,10 +57,26 @@ class StockRepositoryImpl @Inject constructor(
                 // Happens when something with parsing goes wrong
                 e.printStackTrace()
                 emit(Resource.Error("Couldn't load data"))
+                null
             } catch (e: HttpException) {
                 // happens when there is an invalid response
                 e.printStackTrace()
                 emit(Resource.Error("Couldn't load data"))
+                null
+            }
+
+            remoteListings?.let { listings ->
+                dao.clearCompanyListings()
+                dao.insertCompanyListings(
+                    listings.map { it.toCompanyListingEntity() }
+                )
+                // This makes our Data to be single source of truth
+                emit(Resource.Success(
+                    data = dao
+                        .searchCompanyListing("")
+                        .map { it.toCompanyListing() }
+                ))
+                emit(Resource.Loading(false))
             }
 
         }
