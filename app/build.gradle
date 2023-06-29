@@ -3,6 +3,7 @@ plugins {
     id 'org.jetbrains.kotlin.android'
     id 'kotlin-kapt'
     id 'com.google.dagger.hilt.android'
+    id 'com.google.devtools.ksp' version '1.6.10-1.0.2' // Depends on your kotlin version
 }
 
 android {
@@ -84,6 +85,10 @@ dependencies {
 
     // To use Kotlin annotation processing tool (kapt)
     kapt "androidx.room:room-compiler:$room_version"
+
+    // Compose Nav Destinations
+    implementation 'io.github.raamcosta.compose-destinations:core:1.9.42-beta'
+    ksp 'io.github.raamcosta.compose-destinations:ksp:1.9.42-beta'
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
